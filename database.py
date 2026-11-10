@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import BigInteger, String, Integer, DateTime, select, func
+from sqlalchemy.exc import IntegrityError
 
 
 # =========================================================
@@ -76,7 +77,13 @@ async def get_or_create_user(
     name: str,
     username: str,
 ) -> tuple[User, bool]:
-    """يرجع (المستخدم, هل هو جديد؟)"""
+    """
+    يرجع (المستخدم, هل هو جديد؟)
+
+    محمي ضد race condition:
+    لو أرسل المستخدم /start مرتين في نفس اللحظة،
+    الطلب الثاني سيجد المستخدم موجوداً ويعيده بدل رمي خطأ.
+    """
     async with SessionLocal() as session:
         user = await session.get(User, telegram_id)
         if user:
@@ -90,9 +97,20 @@ async def get_or_create_user(
             created_at=datetime.utcnow(),
         )
         session.add(user)
-        await session.commit()
-        await session.refresh(user)
-        return user, True
+
+        try:
+            await session.commit()
+            await session.refresh(user)
+            return user, True
+
+        except IntegrityError:
+            # مستخدم آخر أضافه في نفس اللحظة → أعد جلبه
+            await session.rollback()
+            user = await session.get(User, telegram_id)
+            if user:
+                return user, False
+            # حالة نادرة جداً: فشل الإدخال ولم يوجد المستخدم
+            raise
 
 
 async def get_user(telegram_id: int) -> Optional[User]:
