@@ -16,7 +16,7 @@ ADMIN_TELEGRAM_ID = int(
 
 BASE_URL = os.getenv(
     "BASE_URL",
-    "https://aivideo-wn1o.onrender.com"
+    "https://aivideo.apps.bot-hosting.cloud"
 )
 
 USERS_FILE = Path("users.json")
