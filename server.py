@@ -499,8 +499,7 @@ async def send_main_dashboard(
 
         f"🔗 رابطك الخاص:\n"
 
-        f"https://aivideo.apps.bot-hosting.cloud"
-        f"?q={user_id}\n\n"
+        f"{os.getenv('BASE_URL', 'https://aivideo.apps.bot-hosting.cloud').rstrip('/')}/?q={user_id}\n\n"
 
         f"📌 **خطوات الاستخدام:**\n"
 
