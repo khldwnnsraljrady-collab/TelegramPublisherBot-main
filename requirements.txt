@@ -1,3 +1,6 @@
-aiogram==3.24.0
-python-dotenv==1.1.1
-aiohttp==3.13.5
+aiogram
+fastapi
+uvicorn
+python-multipart
+python-dotenv
+Jinja2
