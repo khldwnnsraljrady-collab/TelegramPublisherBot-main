@@ -158,3 +158,13 @@ async def get_stats() -> dict:
         "last_7_days": last_7 or 0,
         "this_month": this_month or 0,
     }
+
+async def set_user_language(telegram_id: int, language: str) -> bool:
+    """تحديث لغة المستخدم"""
+    async with SessionLocal() as session:
+        user = await session.get(User, telegram_id)
+        if not user:
+            return False
+        user.language = language
+        await session.commit()
+        return True
