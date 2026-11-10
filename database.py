@@ -54,10 +54,10 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(255), default="")
     username: Mapped[str] = mapped_column(String(255), default="")
     referrals: Mapped[int] = mapped_column(Integer, default=0)
+    language: Mapped[str] = mapped_column(String(5), default="ar")  # ← جديد
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow
     )
-
 
 # =========================================================
 # إنشاء الجداول
