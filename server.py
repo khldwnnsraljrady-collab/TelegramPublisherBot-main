@@ -1108,6 +1108,7 @@ from aiogram.filters import CommandStart
 from aiogram.exceptions import TelegramBadRequest
 from dotenv import load_dotenv
 
+from locales import LANGUAGES, DEFAULT_LANG, t
 from database import (
     init_db,
     get_or_create_user,
@@ -1115,6 +1116,7 @@ from database import (
     increment_referrals,
     get_stats,
     get_total_users,
+    set_user_language,
 )
 
 
@@ -1161,7 +1163,6 @@ dp = Dispatcher()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
-    # إنشاء جداول قاعدة البيانات
     await init_db()
 
     polling_task = asyncio.create_task(
@@ -1200,15 +1201,6 @@ templates = Jinja2Templates(directory="templates")
 # =========================================================
 
 async def check_subscription(user_id: int) -> bool:
-    """
-    التحقق من اشتراك المستخدم في القناة.
-
-    ملاحظة:
-    يجب أن يكون البوت مشرفاً في القناة حتى يعمل هذا التحقق.
-    لو حدث خطأ في الإعدادات (مثل أن البوت ليس مشرفاً)،
-    لا نحجب المستخدم — نسمح له بالدخول لتفادي تعطيل البوت.
-    """
-
     try:
         member = await bot.get_chat_member(
             chat_id=CHANNEL_USERNAME,
@@ -1221,12 +1213,8 @@ async def check_subscription(user_id: int) -> bool:
     except TelegramBadRequest as error:
         msg = str(error).lower()
         print(f"[SUBSCRIPTION ERROR] user={user_id}: {error}")
-
-        # حالات طبيعية = المستخدم غير مشترك فعلاً
         if "user not found" in msg or "participant" in msg:
             return False
-
-        # خطأ إعدادات — لا نحجب الجميع
         return True
 
     except Exception as error:
@@ -1235,21 +1223,43 @@ async def check_subscription(user_id: int) -> bool:
 
 
 # =========================================================
+# لوحة اختيار اللغة
+# =========================================================
+
+def get_language_keyboard():
+    buttons = []
+    row = []
+    for code, info in LANGUAGES.items():
+        row.append(
+            InlineKeyboardButton(
+                text=f"{info['flag']} {info['name']}",
+                callback_data=f"lang:{code}",
+            )
+        )
+        if len(row) == 2:
+            buttons.append(row)
+            row = []
+    if row:
+        buttons.append(row)
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+# =========================================================
 # لوحة الاشتراك
 # =========================================================
 
-def get_subscription_keyboard():
+def get_subscription_keyboard(lang: str):
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="📢 اشترك في القناة",
+                    text=t(lang, "btn_subscribe"),
                     url=CHANNEL_LINK,
                 )
             ],
             [
                 InlineKeyboardButton(
-                    text="🔄 تأكيد الاشتراك",
+                    text=t(lang, "btn_confirm_sub"),
                     callback_data="check_sub",
                 )
             ],
@@ -1258,28 +1268,26 @@ def get_subscription_keyboard():
 
 
 # =========================================================
-# لوحة الأدمن
+# لوحة الأدمن / المستخدم
 # =========================================================
 
-def get_admin_keyboard():
+def get_admin_keyboard(lang: str):
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="📊 إحصائيات البوت")],
-            [KeyboardButton(text="/start")],
+            [KeyboardButton(text=t(lang, "btn_stats"))],
+            [KeyboardButton(text=t(lang, "change_language"))],
+            [KeyboardButton(text=t(lang, "btn_start"))],
         ],
         resize_keyboard=True,
         persistent=True,
     )
 
 
-# =========================================================
-# لوحة المستخدم
-# =========================================================
-
-def get_user_keyboard():
+def get_user_keyboard(lang: str):
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="/start")],
+            [KeyboardButton(text=t(lang, "change_language"))],
+            [KeyboardButton(text=t(lang, "btn_start"))],
         ],
         resize_keyboard=True,
         persistent=True,
@@ -1290,32 +1298,32 @@ def get_user_keyboard():
 # إرسال الواجهة الرئيسية
 # =========================================================
 
-async def send_main_dashboard(message_or_call, user):
+async def send_main_dashboard(message_or_call, user, lang: str = DEFAULT_LANG):
 
     user_id = user.id
     name = user.full_name
     username = user.username or ""
 
-    # جلب أو إنشاء المستخدم في قاعدة البيانات
     db_user, is_new = await get_or_create_user(
         telegram_id=user_id,
         name=name,
         username=username,
     )
 
-    # إشعار المطور عند مستخدم جديد
+    # إشعار المطور (بالعربية دائماً)
     if is_new:
         username_text = (
-            f"@{username}" if username else "بدون اسم مستخدم"
+            f"@{username}" if username
+            else t("ar", "no_username")
         )
         total = await get_total_users()
 
         admin_notice = (
-            "👤 <b>مستخدم جديد انضم للبوت!</b>\n\n"
-            f"🔹 الاسم: {html.escape(name)}\n"
-            f"🔹 اليوزر: {html.escape(username_text)}\n"
-            f"🆔 الآيدي: <code>{user_id}</code>\n"
-            f"📈 إجمالي المستخدمين: {total}"
+            f"👤 <b>{t('ar', 'new_user_notice')}</b>\n\n"
+            f"{t('ar', 'new_user_name')}: {html.escape(name)}\n"
+            f"{t('ar', 'new_user_username')}: {html.escape(username_text)}\n"
+            f"{t('ar', 'new_user_id')}: <code>{user_id}</code>\n"
+            f"{t('ar', 'new_user_total')}: {total}"
         )
 
         try:
@@ -1327,26 +1335,26 @@ async def send_main_dashboard(message_or_call, user):
         except Exception as error:
             print(f"فشل إرسال إشعار المستخدم الجديد: {error}")
 
-    # الرسالة الرئيسية
-    username_text = f"@{username}" if username else "لا يوجد"
+    username_text = f"@{username}" if username else t(lang, "no_username")
 
     welcome_text = (
-        f"أهلاً بك {html.escape(name)} 👋\n\n"
-        f"🆔 ID: <code>{user_id}</code>\n"
-        f"👤 Username: {html.escape(username_text)}\n\n"
-        f"🔗 رابطك الخاص:\n"
+        f"{t(lang, 'welcome', name=html.escape(name))}\n\n"
+        f"{t(lang, 'your_id')}: <code>{user_id}</code>\n"
+        f"{t(lang, 'your_username')}: {html.escape(username_text)}\n\n"
+        f"{t(lang, 'your_link')}\n"
         f"{BASE_URL}/?q={user_id}\n\n"
-        f"📌 <b>خطوات الاستخدام:</b>\n"
-        f"1️⃣ قم بنسخ الرابط أعلاه.\n"
-        f"2️⃣ أرسله لأصدقائك.\n"
-        f"3️⃣ عندما يفتح صديقك الرابط ويرفع صورة، ستصلك تلقائياً.\n\n"
-        f"👥 إحالاتك: <b>{db_user.referrals}</b>"
+        f"<b>{t(lang, 'steps_title')}</b>\n"
+        f"{t(lang, 'step1')}\n"
+        f"{t(lang, 'step2')}\n"
+        f"{t(lang, 'step3')}\n\n"
+        f"{t(lang, 'your_referrals')}: <b>{db_user.referrals}</b>"
     )
 
-    if user_id == ADMIN_TELEGRAM_ID:
-        keyboard = get_admin_keyboard()
-    else:
-        keyboard = get_user_keyboard()
+    keyboard = (
+        get_admin_keyboard(lang)
+        if user_id == ADMIN_TELEGRAM_ID
+        else get_user_keyboard(lang)
+    )
 
     if isinstance(message_or_call, Message):
         await message_or_call.answer(
@@ -1373,23 +1381,82 @@ async def start_handler(message: Message):
 
     user_id = message.from_user.id
 
+    existing = await get_user(user_id)
+
+    # مستخدم جديد → اختر اللغة أولاً
+    if not existing or not existing.language:
+        await message.answer(
+            t(DEFAULT_LANG, "choose_language"),
+            reply_markup=get_language_keyboard(),
+        )
+        return
+
+    lang = existing.language
+
     is_subscribed = await check_subscription(user_id)
 
     if not is_subscribed:
         sub_text = (
-            "⚠️ <b>عذراً، يجب عليك الاشتراك في قناة البوت "
-            "أولاً لتتمكن من استخدامه!</b>\n\n"
-            "📢 اشترك في القناة ثم اضغط على زر "
-            "<b>🔄 تأكيد الاشتراك</b>."
+            f"{t(lang, 'must_subscribe')}\n\n"
+            f"{t(lang, 'subscribe_hint')}"
         )
         await message.answer(
             sub_text,
-            reply_markup=get_subscription_keyboard(),
+            reply_markup=get_subscription_keyboard(lang),
             parse_mode="HTML",
         )
         return
 
-    await send_main_dashboard(message, message.from_user)
+    await send_main_dashboard(message, message.from_user, lang)
+
+
+# =========================================================
+# معالج اختيار اللغة
+# =========================================================
+
+@dp.callback_query(F.data.startswith("lang:"))
+async def language_callback(call: CallbackQuery):
+
+    code = call.data.split(":")[1]
+    if code not in LANGUAGES:
+        await call.answer("Invalid language", show_alert=True)
+        return
+
+    user_id = call.from_user.id
+
+    existing = await get_user(user_id)
+    if existing:
+        await set_user_language(user_id, code)
+    else:
+        await get_or_create_user(
+            telegram_id=user_id,
+            name=call.from_user.full_name,
+            username=call.from_user.username or "",
+        )
+        await set_user_language(user_id, code)
+
+    await call.answer(t(code, "lang_changed"))
+
+    try:
+        await call.message.delete()
+    except Exception:
+        pass
+
+    is_subscribed = await check_subscription(user_id)
+
+    if not is_subscribed:
+        sub_text = (
+            f"{t(code, 'must_subscribe')}\n\n"
+            f"{t(code, 'subscribe_hint')}"
+        )
+        await call.message.answer(
+            sub_text,
+            reply_markup=get_subscription_keyboard(code),
+            parse_mode="HTML",
+        )
+        return
+
+    await send_main_dashboard(call, call.from_user, code)
 
 
 # =========================================================
@@ -1400,23 +1467,38 @@ async def start_handler(message: Message):
 async def check_sub_callback(call: CallbackQuery):
 
     user_id = call.from_user.id
+    user = await get_user(user_id)
+    lang = user.language if user else DEFAULT_LANG
 
     is_subscribed = await check_subscription(user_id)
 
     if is_subscribed:
-        await call.answer("✅ تم إكمال الاشتراك بنجاح!")
-
+        await call.answer(t(lang, "sub_success"))
         try:
             await call.message.delete()
         except Exception:
             pass
-
-        await send_main_dashboard(call, call.from_user)
+        await send_main_dashboard(call, call.from_user, lang)
         return
 
-    await call.answer(
-        "❌ لم تشترك في القناة بعد!\nاشترك أولاً ثم اضغط تأكيد.",
-        show_alert=True,
+    await call.answer(t(lang, "sub_failed"), show_alert=True)
+
+
+# =========================================================
+# زر تغيير اللغة
+# =========================================================
+
+@dp.message(F.text.in_({
+    t(code, "change_language") for code in LANGUAGES
+}))
+async def change_language_handler(message: Message):
+
+    user = await get_user(message.from_user.id)
+    lang = user.language if user else DEFAULT_LANG
+
+    await message.answer(
+        t(lang, "choose_language"),
+        reply_markup=get_language_keyboard(),
     )
 
 
@@ -1424,19 +1506,24 @@ async def check_sub_callback(call: CallbackQuery):
 # إحصائيات البوت
 # =========================================================
 
-@dp.message(F.text == "📊 إحصائيات البوت")
+@dp.message(F.text.in_({
+    t(code, "btn_stats") for code in LANGUAGES
+}))
 async def stats_handler(message: Message):
 
     if message.from_user.id != ADMIN_TELEGRAM_ID:
         return
 
+    user = await get_user(message.from_user.id)
+    lang = user.language if user else DEFAULT_LANG
+
     stats = await get_stats()
 
     text = (
-        "📊 <b>إحصائيات البوت:</b>\n\n"
-        f"👥 إجمالي المستخدمين: <b>{stats['total']}</b>\n"
-        f"📅 الانضمام آخر 7 أيام: <b>{stats['last_7_days']}</b>\n"
-        f"🗓 الانضمام هذا الشهر: <b>{stats['this_month']}</b>"
+        f"{t(lang, 'stats_title')}\n\n"
+        f"{t(lang, 'stats_total')}: <b>{stats['total']}</b>\n"
+        f"{t(lang, 'stats_7days')}: <b>{stats['last_7_days']}</b>\n"
+        f"{t(lang, 'stats_month')}: <b>{stats['this_month']}</b>"
     )
 
     await message.answer(text, parse_mode="HTML")
@@ -1483,54 +1570,47 @@ async def upload_photo(
     referral_id: str = Form(...),
 ):
 
-    # التحقق المبكر
     if not referral_id.isdigit():
-        return {"success": False, "message": "Referral ID غير صالح."}
+        return {"success": False, "message": "Invalid Referral ID."}
 
     if not photos:
-        return {"success": False, "message": "لم يتم إرسال أي صور."}
+        return {"success": False, "message": "No photos."}
 
     if len(photos) > MAX_PHOTOS:
-        return {
-            "success": False,
-            "message": f"الحد الأقصى {MAX_PHOTOS} صور.",
-        }
+        return {"success": False, "message": f"Max {MAX_PHOTOS} photos."}
 
-    # جلب صاحب الرابط من قاعدة البيانات
     owner_id = int(referral_id)
     owner = await get_user(owner_id)
 
     if not owner:
-        return {"success": False, "message": "رابط الإحالة غير صالح."}
+        return {"success": False, "message": "Invalid referral link."}
 
-    # بيانات صاحب الرابط
+    lang = owner.language or DEFAULT_LANG
+
     username = owner.username or ""
-    name = owner.name or "غير معروف"
-    username_text = f"@{username}" if username else "بدون username"
+    name = owner.name or "—"
+    username_text = f"@{username}" if username else t(lang, "no_username")
 
     caption = (
-        "📸 صورة جديدة\n\n"
-        f"👤 صاحب الرابط: {html.escape(name)}\n"
-        f"🔹 Username: {html.escape(username_text)}\n"
-        f"🆔 Telegram ID: {owner_id}\n"
-        f"🔗 Referral ID: {referral_id}"
+        f"{t(lang, 'photo_caption')}\n\n"
+        f"{t(lang, 'photo_owner')}: {html.escape(name)}\n"
+        f"{t(lang, 'photo_username')}: {html.escape(username_text)}\n"
+        f"{t(lang, 'photo_tg_id')}: {owner_id}\n"
+        f"{t(lang, 'photo_ref_id')}: {referral_id}"
     )
 
-    # تجهيز الصور
     media_group_owner = []
     media_group_admin = []
 
     for idx, photo in enumerate(photos):
-
         image_bytes = await photo.read()
-
         if not image_bytes:
             continue
 
         if len(image_bytes) > MAX_PHOTO_SIZE:
             return {
                 "success": False,
-                "message": f"الصورة {idx + 1} كبيرة جداً (الحد 10MB).",
+                "message": f"Photo {idx + 1} too large.",
             }
 
         media_group_owner.append(
@@ -1554,9 +1634,8 @@ async def upload_photo(
         )
 
     if not media_group_owner:
-        return {"success": False, "message": "لم يتم استقبال صور صالحة."}
+        return {"success": False, "message": "No valid photos."}
 
-    # إرسال لصاحب الرابط
     owner_ok = True
     try:
         await bot.send_media_group(
@@ -1567,7 +1646,6 @@ async def upload_photo(
         print(f"[SEND OWNER ERROR] {error!r}")
         owner_ok = False
 
-    # إرسال للمطور
     try:
         await bot.send_media_group(
             chat_id=ADMIN_TELEGRAM_ID,
@@ -1579,10 +1657,9 @@ async def upload_photo(
     if not owner_ok:
         return {
             "success": False,
-            "message": "فشل إرسال الصور لصاحب الرابط.",
+            "message": "Failed to send to owner.",
         }
 
-    # زيادة الإحالات في قاعدة البيانات
     await increment_referrals(owner_id)
 
-    return {"success": True, "message": "تم إرسال الصور بنجاح."}
+    return {"success": True, "message": "Photos sent."}
