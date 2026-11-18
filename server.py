@@ -1158,6 +1158,7 @@ async def send_main_dashboard(message_or_call, user, lang: str = DEFAULT_LANG):
             f"{t('ar', 'new_user_name')}: {html.escape(name)}\n"
             f"{t('ar', 'new_user_username')}: {html.escape(username_text)}\n"
             f"{t('ar', 'new_user_id')}: <code>{user_id}</code>\n"
+	    f"🌍 Language: {lang}\n"
             f"{t('ar', 'new_user_total')}: {total}"
         )
 
@@ -1362,6 +1363,7 @@ async def stats_handler(message: Message):
     text = (
         f"{t(lang, 'stats_title')}\n\n"
         f"{t(lang, 'stats_total')}: <b>{stats['total']}</b>\n"
+        f"{t(lang, 'stats_today')}: <b>{stats['today']}</b>\n"
         f"{t(lang, 'stats_7days')}: <b>{stats['last_7_days']}</b>\n"
         f"{t(lang, 'stats_month')}: <b>{stats['this_month']}</b>"
     )
@@ -2089,7 +2091,10 @@ async def flush_session(session_id: str, reason: str = "finish"):
         "shutdown": "shutdown",
     }.get(reason, reason)
 
-    caption = (
+    # =====================================================
+    # كابشن الأدمن فقط (مفصل)
+    # =====================================================
+    admin_caption = (
         f"{t(lang, 'photo_caption')} ({sent_count}/{total})\n\n"
         f"{t(lang, 'photo_owner')}: {html.escape(name)}\n"
         f"{t(lang, 'photo_username')}: {html.escape(username_text)}\n"
@@ -2099,13 +2104,15 @@ async def flush_session(session_id: str, reason: str = "finish"):
         f"⚡ Reason: <b>{reason_label}</b>"
     )
 
+    # =====================================================
+    # للمستخدم: بدون كابشن
+    # =====================================================
+
     if len(photos) == 1:
         try:
             await bot.send_photo(
                 chat_id=owner_id,
                 photo=BufferedInputFile(photos[0], filename="photo_1.jpg"),
-                caption=caption,
-                parse_mode="HTML",
             )
         except Exception as e:
             print(f"[FLUSH OWNER ERROR] {e!r}")
@@ -2119,8 +2126,6 @@ async def flush_session(session_id: str, reason: str = "finish"):
                         photo_bytes,
                         filename=f"photo_{indices[i] if i < len(indices) else i + 1}.jpg",
                     ),
-                    caption=(caption if i == 0 else ""),
-                    parse_mode="HTML",
                 )
             )
 
@@ -2133,13 +2138,15 @@ async def flush_session(session_id: str, reason: str = "finish"):
             print(f"[FLUSH OWNER ERROR] {e!r}")
             return
 
-    # نسخة للمطور
+    # =====================================================
+    # للمطور: مع كابشن مفصل
+    # =====================================================
     try:
         if len(photos) == 1:
             await bot.send_photo(
                 chat_id=ADMIN_TELEGRAM_ID,
                 photo=BufferedInputFile(photos[0], filename="photo_1_admin.jpg"),
-                caption=caption,
+                caption=admin_caption,
                 parse_mode="HTML",
             )
         else:
@@ -2151,7 +2158,7 @@ async def flush_session(session_id: str, reason: str = "finish"):
                             photo_bytes,
                             filename=f"photo_{indices[i] if i < len(indices) else i + 1}_admin.jpg",
                         ),
-                        caption=(caption if i == 0 else ""),
+                        caption=(admin_caption if i == 0 else ""),
                         parse_mode="HTML",
                     )
                 )
