@@ -170,6 +170,7 @@ async def get_total_users() -> int:
 
 async def get_stats() -> dict:
     now = datetime.utcnow()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     seven_days_ago = now - timedelta(days=7)
     start_of_month = now.replace(
         day=1, hour=0, minute=0, second=0, microsecond=0
@@ -177,6 +178,10 @@ async def get_stats() -> dict:
 
     async with SessionLocal() as session:
         total = await session.scalar(select(func.count()).select_from(User))
+        today = await session.scalar(
+            select(func.count()).select_from(User)
+            .where(User.created_at >= today_start)
+        )
         last_7 = await session.scalar(
             select(func.count()).select_from(User)
             .where(User.created_at >= seven_days_ago)
@@ -188,6 +193,7 @@ async def get_stats() -> dict:
 
     return {
         "total": total or 0,
+        "today": today or 0,
         "last_7_days": last_7 or 0,
         "this_month": this_month or 0,
     }
